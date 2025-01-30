@@ -16,10 +16,13 @@
 #
 
 #$1=TARGET_DEVICE, $2=PRODUCT_OUT, $3=LINEAGE_VERSION
-existingOTAjson=./vendor/MatrixxOTA/$1.json
-output=./vendor/MatrixxOTA/$1.json
+existingOTAjson="./vendor/MatrixxOTA/$1.json"
+output="./vendor/MatrixxOTA/$1.json"
 
-buildprop=$2/system/build.prop
+buildprop="$2/system/build.prop"
+
+# Ensure the directory exists
+mkdir -p "./vendor/MatrixxOTA"
 
 if [ -f "$existingOTAjson" ]; then
     # Get data from already existing device JSON
@@ -28,10 +31,12 @@ if [ -f "$existingOTAjson" ]; then
     device=$(grep -n "\"device\"" "$existingOTAjson" | cut -d ":" -f 3 | sed 's/"//g' | xargs)
 else
     # Fetch Basic details from build.prop if JSON doesn't exist
-    maintainer=$(grep "ro.matrixx.maintainer" "$BUILDPROP" | cut -d'=' -f2 | xargs)
-    oem=$(grep "ro.product.system.manufacturer" "$BUILDPROP" | cut -d'=' -f2 | xargs)
+    oem=$(grep "ro.product.system.manufacturer" "$buildprop" | cut -d'=' -f2 | xargs)
     device=$(basename "$2")
 fi
+
+maintainer=""
+support_group=""
 
 filename=$3
 download="https://sourceforge.net/projects/projectmatrixx/files/Android-15/$1/$filename/download"
@@ -40,8 +45,8 @@ timestamp=$(sed -n "$linenr"p < "$buildprop" | cut -d'=' -f2)
 md5=$(md5sum "$2/$3" | cut -d' ' -f1)
 size=$(stat -c "%s" "$2/$3")
 
-#Get version
-VERSION=$(echo "$3" | cut -d'-' -f6 | sed 's/v//')
+# Get version
+VERSION=$(echo "$3" | cut -d'-' -f2 | sed 's/v//')
 IFS='.' read -r V_MAX V_MIN V_PATCH <<< "$VERSION"
 if [[ -z "$V_PATCH" ]]; then
   VERSION="$V_MAX.$V_MIN"
@@ -49,15 +54,17 @@ else
   VERSION="$V_MAX.$V_MIN.$V_PATCH"
 fi
 
-	#cleanup old file
-	if [ -f $output ]; then
-        	rm $output
-	fi
+# Cleanup old file
+if [ -f "$output" ]; then
+    rm "$output"
+fi
 
-	echo '{
+# Create JSON output
+echo '{
   "response": [
     {
         "maintainer": "'$maintainer'",
+        "support_group":"'$support_group'",
         "oem": "'$oem'",
         "device": "'$device'",
         "filename": "'$filename'",
@@ -65,15 +72,16 @@ fi
         "timestamp": '$timestamp',
         "md5": "'$md5'",
         "size": '$size',
-        "version": "'$version'"
+        "version": "'$VERSION'"
     }
   ]
-}' >> $output
+}' >> "$output"
 
-        echo "vendor/MatrixxOTA/$1.json"
-else
-	#if not already supported, create dummy file with info in it on how to
-	echo 'There is no official support for this device yet' >> $output;
+echo "vendor/MatrixxOTA/$1.json"
+
+# Handle case when device is not officially supported
+if [ ! -f "$existingOTAjson" ]; then
+    echo 'There is no official support for this device yet' >> "$output"
 fi
 
 echo ""
