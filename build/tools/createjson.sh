@@ -29,14 +29,13 @@ if [ -f "$existingOTAjson" ]; then
     maintainer=$(grep -n "\"maintainer\"" "$existingOTAjson" | cut -d ":" -f 3 | sed 's/"//g' | sed 's/,//g' | xargs)
     oem=$(grep -n "\"oem\"" "$existingOTAjson" | cut -d ":" -f 3 | sed 's/"//g' | xargs)
     device=$(grep -n "\"device\"" "$existingOTAjson" | cut -d ":" -f 3 | sed 's/"//g' | xargs)
+    support_group=$(grep -n "\"support_group\"" "$existingOTAjson" | cut -d ":" -f 3 | sed 's/"//g' | xargs)
+    device_name=`grep -n "\"device_name\"" $existingOTAjson | cut -d ":" -f 3 | sed 's/"//g' | sed 's/,//g' | xargs`
 else
     # Fetch Basic details from build.prop if JSON doesn't exist
     oem=$(grep "ro.product.system.manufacturer" "$buildprop" | cut -d'=' -f2 | xargs)
     device=$(basename "$2")
 fi
-
-maintainer=""
-support_group=""
 
 filename=$3
 download="https://sourceforge.net/projects/projectmatrixx/files/Android-15/$1/$filename/download"
@@ -67,6 +66,7 @@ echo '{
         "support_group":"'$support_group'",
         "oem": "'$oem'",
         "device": "'$device'",
+        "device_name": "'$device_name'",
         "filename": "'$filename'",
         "download": "'$download'",
         "timestamp": '$timestamp',
